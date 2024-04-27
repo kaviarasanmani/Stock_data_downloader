@@ -6,6 +6,7 @@ import zipfile
 import os
 
 
+
 # Function to download stock data
 def download_stock_data(symbol, start_date, end_date):
     try:
@@ -62,5 +63,21 @@ def main():
                 st.error('End date must be after start date.')
 
 
+
+st.markdown("""
+<style>
+.important-note {
+    color: #CC6C00;
+    background-color: #FFF3E0;
+    border: 1px solid #FFA500;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+</style>
+<div class="important-note">
+    <strong>Important Note:</strong> The header name in the CSV file must be <strong>'SYMBOL'</strong>
+</div>
+""", unsafe_allow_html=True)
 if __name__ == '__main__':
     main()
