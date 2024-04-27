@@ -40,7 +40,7 @@ Contributions to the Stock Data Downloader are welcome! If you have suggestions 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Contact
-For any further inquiries, you can reach out to [your email/contact information].
+For any further inquiries, you can reach out to kavikavi41@rocketmail.com.
 
 ---
 
