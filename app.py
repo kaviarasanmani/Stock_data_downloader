@@ -1,13 +1,18 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-from datetime import date
+import logging
+from datetime import date, timedelta
 
-# ---------------- UI CONFIG ----------------
-st.set_page_config(page_title="NSE Stock Data Downloader", layout="wide")
+# ---------------- LOGGING ----------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(page_title="Stock Data Downloader", layout="wide")
 st.title("📈 NSE / BSE Stock Data Downloader")
 
-# ---------------- SIDEBAR ----------------
+# ---------------- SIDEBAR CONFIG ----------------
 st.sidebar.header("⚙️ Configuration")
 
 exchange = st.sidebar.selectbox("Select Exchange", ["NSE", "BSE"])
@@ -31,31 +36,74 @@ if data_type == "Intraday":
         ["1m", "5m", "15m", "30m", "60m"]
     )
 
-start_date = st.sidebar.date_input("Start Date", date(2025, 1, 1))
+start_date = st.sidebar.date_input(
+    "Start Date", date.today() - timedelta(days=30)
+)
 end_date = st.sidebar.date_input("End Date", date.today())
 
 output_format = st.sidebar.selectbox("Output Format", ["CSV", "Excel"])
-file_mode = st.sidebar.radio("File Mode", ["Single File", "Separate per Symbol"])
 
-# ---------------- FILE UPLOAD ----------------
-uploaded_file = st.file_uploader(
-    "📂 Upload CSV or Excel with Symbols",
-    type=["csv", "xlsx"]
+# ---------------- INTRADAY NOTE ----------------
+if data_type == "Intraday":
+    st.info(
+        "ℹ️ **Intraday Data Limitation (Yahoo Finance)**\n\n"
+        "- **1m interval** → last **7 days only**\n"
+        "- **5m / 15m / 30m / 60m** → last **60 days only**\n"
+        "- Date range will be **auto-adjusted** if exceeded"
+    )
+
+# ---------------- SYMBOL INPUT ----------------
+st.subheader("📌 Stock Symbols")
+
+input_mode = st.radio(
+    "Choose symbol input method",
+    ["Upload CSV / Excel", "Enter symbols manually"]
 )
 
-# ---------------- FETCH LOGIC ----------------
-if uploaded_file and st.button("🚀 Fetch Data"):
+symbols = []
 
-    if uploaded_file.name.endswith(".csv"):
-        symbols_df = pd.read_csv(uploaded_file)
-    else:
-        symbols_df = pd.read_excel(uploaded_file)
+if input_mode == "Upload CSV / Excel":
+    uploaded_file = st.file_uploader(
+        "Upload file (must contain `Symbol` column)",
+        type=["csv", "xlsx"]
+    )
 
-    symbols = symbols_df["Symbol"].dropna().unique()
+    if uploaded_file:
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
+
+        symbols = df["Symbol"].dropna().astype(str).unique().tolist()
+
+else:
+    symbol_text = st.text_input(
+        "Enter symbols (comma-separated)",
+        placeholder="SBIN, INFY, TCS, HDFCBANK"
+    )
+
+    if symbol_text:
+        symbols = [s.strip().upper() for s in symbol_text.split(",") if s.strip()]
+
+# ---------------- FETCH DATA ----------------
+if symbols and st.button("🚀 Fetch Data"):
+
     all_data = []
     failed_symbols = []
 
-    progress = st.progress(0)
+    # ---- Intraday date enforcement ----
+    if data_type == "Intraday":
+        max_days = 7 if interval == "1m" else 60
+        allowed_start = end_date - timedelta(days=max_days)
+
+        if start_date < allowed_start:
+            st.warning(
+                f"⚠️ Start date adjusted to last {max_days} days "
+                f"due to intraday limits."
+            )
+            start_date = allowed_start
+
+    progress = st.progress(0.0)
 
     for i, symbol in enumerate(symbols):
         try:
@@ -64,50 +112,66 @@ if uploaded_file and st.button("🚀 Fetch Data"):
             data = ticker.history(
                 start=start_date,
                 end=end_date,
-                interval=interval if data_type == "Intraday" else interval_map[data_type]
+                interval=interval if data_type == "Intraday" else interval_map[data_type],
+                auto_adjust=False,
+                prepost=False
             )
 
             if not data.empty:
                 data = data[["Open", "High", "Low", "Close", "Volume"]]
                 data["Symbol"] = symbol
                 data.reset_index(inplace=True)
-                all_data.append(data)
 
-        except Exception:
+                # 🔑 Fix Date vs Datetime issue
+                if "Datetime" in data.columns:
+                    data.rename(columns={"Datetime": "Date"}, inplace=True)
+
+                all_data.append(data)
+            else:
+                failed_symbols.append(symbol)
+
+        except Exception as e:
+            logger.error(f"{symbol} failed: {e}")
             failed_symbols.append(symbol)
 
         progress.progress((i + 1) / len(symbols))
 
+    # ---------------- FINAL OUTPUT ----------------
     if not all_data:
         st.error("❌ No data fetched. Check symbols or date range.")
+        st.stop()
+
+    final_df = pd.concat(all_data, ignore_index=True)
+
+    required_cols = ["Date", "Symbol", "Open", "High", "Low", "Close", "Volume"]
+    final_df = final_df[required_cols]
+
+    st.success("✅ Data fetched successfully")
+    st.dataframe(final_df, use_container_width=True)
+
+    # ---------------- DOWNLOAD ----------------
+    if output_format == "CSV":
+        csv = final_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Download CSV",
+            csv,
+            file_name="stock_data.csv",
+            mime="text/csv"
+        )
     else:
-        final_df = pd.concat(all_data, ignore_index=True)
-        final_df = final_df[["Date", "Symbol", "Open", "High", "Low", "Close", "Volume"]]
+        with pd.ExcelWriter("stock_data.xlsx", engine="xlsxwriter") as writer:
+            final_df.to_excel(writer, index=False, sheet_name="Data")
 
-        st.success("✅ Data fetched successfully")
-        st.dataframe(final_df, use_container_width=True)
-
-        # ---------------- DOWNLOAD ----------------
-        if output_format == "CSV":
-            csv = final_df.to_csv(index=False).encode("utf-8")
+        with open("stock_data.xlsx", "rb") as f:
             st.download_button(
-                "⬇️ Download CSV",
-                csv,
-                file_name="stock_data.csv",
-                mime="text/csv"
+                "⬇️ Download Excel",
+                f,
+                file_name="stock_data.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-        else:
-            excel_buffer = pd.ExcelWriter("stock_data.xlsx", engine="xlsxwriter")
-            final_df.to_excel(excel_buffer, index=False, sheet_name="Data")
-            excel_buffer.close()
 
-            with open("stock_data.xlsx", "rb") as f:
-                st.download_button(
-                    "⬇️ Download Excel",
-                    f,
-                    file_name="stock_data.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+    if failed_symbols:
+        st.warning(f"⚠️ Failed symbols: {', '.join(failed_symbols)}")
 
-        if failed_symbols:
-            st.warning(f"⚠️ Failed symbols: {', '.join(failed_symbols)}")
+elif st.button("🚀 Fetch Data"):
+    st.warning("Please upload a file or enter symbols.")
