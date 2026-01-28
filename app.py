@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 st.set_page_config(page_title="Stock Data Downloader", layout="wide")
 st.title("📈 NSE / BSE Stock Data Downloader")
 
-# ---------------- SIDEBAR CONFIG ----------------
+# ---------------- SIDEBAR ----------------
 st.sidebar.header("⚙️ Configuration")
 
 exchange = st.sidebar.selectbox("Select Exchange", ["NSE", "BSE"])
@@ -142,16 +142,19 @@ if fetch_clicked:
 
         progress.progress((i + 1) / len(symbols))
 
-    # ---------------- FINAL OUTPUT ----------------
+    # ---------------- FINAL DATAFRAME ----------------
     if not all_data:
         st.error("❌ No data fetched. Check symbols or date range.")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
-
     final_df = final_df[
         ["Date", "Symbol", "Open", "High", "Low", "Close", "Volume"]
     ]
+
+    # ---------------- EXCEL TIMEZONE FIX ----------------
+    if pd.api.types.is_datetime64_any_dtype(final_df["Date"]):
+        final_df["Date"] = final_df["Date"].dt.tz_localize(None)
 
     st.success("✅ Data fetched successfully")
     st.dataframe(final_df, use_container_width=True)
