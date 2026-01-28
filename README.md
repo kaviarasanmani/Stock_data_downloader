@@ -1,52 +1,172 @@
 ---
 
-# Stock Data Downloader
+# 📈 Stock Market Data Ingestion Tool (NSE / BSE)
 
-## Project Overview
-The Stock Data Downloader is a Python-based tool designed to facilitate the easy downloading and archiving of historical stock data. Utilizing the `yfinance` library, this application fetches stock price data over a specified date range and compresses the data into a ZIP file for convenient download and storage.
+A **data ingestion and normalization application** built with **Python, yfinance, and Streamlit** to fetch, validate, and export Indian stock market data (NSE/BSE) in multiple granularities.
 
-## Key Features
-- **Data Upload**: Users can upload a CSV file containing stock symbols (with the header 'SYMBOL') to specify which stocks they wish to download data for.
-- **Historical Data Download**: The application fetches historical stock data from Yahoo Finance for the past year or a user-specified range.
-- **Data Compression**: Downloaded data is automatically compressed into a ZIP file, making it easy to manage and transfer.
-- **User-Friendly Interface**: Built with Streamlit, the application offers a simple, interactive interface that requires no prior technical knowledge to navigate.
-
-## Technologies Used
-- **Python**: The primary programming language used.
-- **Streamlit**: For creating the web-based user interface.
-- **yfinance**: Used to fetch stock price data.
-- **Pandas**: For handling data manipulation tasks.
-- **Zipfile**: Integrated for compressing the downloaded data into ZIP format.
-
-## How to Use
-1. **Start the Application**: Run the application through Streamlit.
-2. **Upload Your CSV File**: Ensure your CSV contains a 'SYMBOL' header and upload it via the interface.
-3. **Select Date Range**: Choose the period for which you want to download the stock data.
-4. **Download**: Fetch and download the data, which will be available in a ZIP file.
-
-## Installation
-To get started with this project, clone the repository and install the required dependencies:
-```bash
-git clone https://github.com/yourUsername/StockDataDownloader.git
-cd StockDataDownloader
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-## Contributing
-Contributions to the Stock Data Downloader are welcome! If you have suggestions to improve the application or have found a bug, please feel free to fork the repository and submit a pull request.
-
-## License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contact
-For any further inquiries, you can reach out to kavikavi41@rocketmail.com.
+This project focuses on **data engineering concepts** such as external API ingestion, schema normalization, data validation, and controlled data delivery.
 
 ---
 
-### Notes on the Description
-- **Structure and Clarity**: The description is structured to provide clarity about what the project does, how it does it, and how it can be used.
-- **Technical Detail**: Includes brief mentions of the technologies used, appealing to both technical and non-technical stakeholders.
-- **Interactive and Engaging**: Encourages community involvement through contributions, enhancing the project's growth and improvement.
+## 🚀 Features
 
-This project description should adequately guide any visitors to your GitHub repository and provide them with all the necessary details to understand and contribute to the project.
+* ✅ Fetch stock market data for **NSE & BSE**
+* ✅ Supports **Daily, Weekly, Monthly, and Intraday** data
+* ✅ Intraday intervals: **1m, 5m, 15m, 30m, 60m**
+* ✅ Bulk symbol ingestion via **CSV / Excel upload**
+* ✅ Manual symbol entry (comma-separated)
+* ✅ Automatic handling of API limitations
+* ✅ Schema normalization (`Date, Symbol, OHLC, Volume`)
+* ✅ Progress tracking & failed symbol reporting
+* ✅ Export data to **CSV or Excel**
+* ✅ Cloud-deployable using **Streamlit**
+
+---
+
+## 📊 Supported Data Granularity
+
+### Intraday Data Limits (Yahoo Finance constraint)
+
+> ⚠️ Note: These limits are enforced automatically by the application
+
+* **1-minute (1m)** → Last **7 days only**
+* **5m / 15m / 30m / 60m** → Last **60 days only**
+
+---
+
+## 🧠 Data Engineering Concepts Covered
+
+This project demonstrates real-world **data engineering responsibilities**:
+
+* **Data Ingestion** from external APIs
+* **Bulk data processing**
+* **Schema validation & normalization**
+* **Handling partial failures**
+* **API constraint management**
+* **Transformation to analytics-ready datasets**
+* **Data delivery for downstream consumers**
+
+---
+
+## 📁 Input Format
+
+### CSV / Excel file structure
+
+```text
+Symbol
+SBIN
+INFY
+TCS
+HDFCBANK
+```
+
+OR
+
+### Manual input
+
+```text
+SBIN, INFY, TCS, HDFCBANK
+```
+
+---
+
+## 📤 Output Schema
+
+```text
+Date | Symbol | Open | High | Low | Close | Volume
+```
+
+This schema is consistent across all data types (Daily & Intraday).
+
+---
+
+## 🛠️ Tech Stack
+
+* **Python 3.10+**
+* **Streamlit** – UI & orchestration
+* **yfinance** – Market data ingestion
+* **Pandas / NumPy** – Data processing
+* **Yahoo Finance** – Data provider
+
+---
+
+## ▶️ How to Run Locally
+
+### 1️⃣ Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2️⃣ Run the app
+
+```bash
+streamlit run app.py
+```
+
+---
+
+## ☁️ Deployment
+
+This application can be deployed easily on:
+
+* **Streamlit Community Cloud**
+* **Docker + AWS / Azure / GCP**
+* **Render / Railway**
+
+---
+
+## ⚠️ Known Limitations
+
+* Yahoo Finance intraday data has **strict historical limits**
+* NSE index intraday data may be unreliable
+* This project is **data ingestion**, not price prediction
+
+---
+
+## 🔮 Future Enhancements (Open for Contributions)
+
+Contributions & suggestions are **very welcome** 🙌
+
+Possible improvements:
+
+* 📊 Candlestick & volume charts
+* 📈 Technical indicators (RSI, MACD)
+* 🗄️ Database storage (PostgreSQL / BigQuery)
+* ⏱️ Scheduled ingestion (Airflow / cron)
+* ☁️ S3 / GCS export
+* 🔐 Authentication & role-based access
+* 🔌 Broker APIs (Zerodha / Upstox)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome!
+
+1. Fork the repository
+2. Create a new branch (`feature/your-feature-name`)
+3. Commit your changes
+4. Open a Pull Request
+
+For major changes, please open an issue first to discuss what you’d like to add.
+
+---
+
+## 📜 Disclaimer
+
+This project is for **educational and analytical purposes only**.
+It is **not intended for trading or financial advice**.
+
+---
+
+## ⭐ Feedback & Suggestions
+
+If you find this project useful:
+
+* ⭐ Star the repo
+* 🐛 Raise an issue
+* 💡 Suggest improvements
+
+Your feedback helps improve the project!
+---
