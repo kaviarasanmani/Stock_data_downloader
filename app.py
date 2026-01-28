@@ -49,7 +49,7 @@ if data_type == "Intraday":
         "ℹ️ **Intraday Data Limitation (Yahoo Finance)**\n\n"
         "- **1m interval** → last **7 days only**\n"
         "- **5m / 15m / 30m / 60m** → last **60 days only**\n"
-        "- Date range will be **auto-adjusted** if exceeded"
+        "- Date range will be **auto-adjusted automatically**"
     )
 
 # ---------------- SYMBOL INPUT ----------------
@@ -85,8 +85,14 @@ else:
     if symbol_text:
         symbols = [s.strip().upper() for s in symbol_text.split(",") if s.strip()]
 
-# ---------------- FETCH DATA ----------------
-if symbols and st.button("🚀 Fetch Data"):
+# ---------------- FETCH BUTTON (ONLY ONCE) ----------------
+fetch_clicked = st.button("🚀 Fetch Data")
+
+# ---------------- FETCH LOGIC ----------------
+if fetch_clicked:
+    if not symbols:
+        st.warning("Please upload a file or enter at least one symbol.")
+        st.stop()
 
     all_data = []
     failed_symbols = []
@@ -122,7 +128,7 @@ if symbols and st.button("🚀 Fetch Data"):
                 data["Symbol"] = symbol
                 data.reset_index(inplace=True)
 
-                # 🔑 Fix Date vs Datetime issue
+                # ---- Fix Date vs Datetime ----
                 if "Datetime" in data.columns:
                     data.rename(columns={"Datetime": "Date"}, inplace=True)
 
@@ -143,8 +149,9 @@ if symbols and st.button("🚀 Fetch Data"):
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    required_cols = ["Date", "Symbol", "Open", "High", "Low", "Close", "Volume"]
-    final_df = final_df[required_cols]
+    final_df = final_df[
+        ["Date", "Symbol", "Open", "High", "Low", "Close", "Volume"]
+    ]
 
     st.success("✅ Data fetched successfully")
     st.dataframe(final_df, use_container_width=True)
@@ -172,6 +179,3 @@ if symbols and st.button("🚀 Fetch Data"):
 
     if failed_symbols:
         st.warning(f"⚠️ Failed symbols: {', '.join(failed_symbols)}")
-
-elif st.button("🚀 Fetch Data"):
-    st.warning("Please upload a file or enter symbols.")
